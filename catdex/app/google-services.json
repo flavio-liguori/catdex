@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "254522334483",
+    "project_id": "catdex-a688b",
+    "storage_bucket": "catdex-a688b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:254522334483:android:ce5395c846be47fcb14ee6",
+        "android_client_info": {
+          "package_name": "com.catdex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnL5drQS9NRXtw2BfJZYxmVX4KWFTHIRM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:254522334483:android:c31424d817ea1354b14ee6",
+        "android_client_info": {
+          "package_name": "com.example.catdex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnL5drQS9NRXtw2BfJZYxmVX4KWFTHIRM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
