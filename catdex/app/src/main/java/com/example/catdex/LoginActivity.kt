@@ -1,22 +1,25 @@
 package com.example.catdex
 
-import MainActivity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.catdex.ui.theme.CatdexTheme
+import com.example.catdex.ui.theme.ColorMain
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -72,6 +75,15 @@ class LoginActivity : ComponentActivity() {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.cat),
+                contentDescription = "Image d'un chat",
+                modifier = Modifier
+                    .size(120.dp),
+                contentScale = ContentScale.Crop
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Bienvenue sur Catdex!",
                 style = MaterialTheme.typography.headlineMedium
@@ -119,7 +131,6 @@ class LoginActivity : ComponentActivity() {
                     isLoading = true
 
                     if (isSignUpMode) {
-                        // Inscription
                         signUp(email, password, username) { success, message ->
                             if (success) navigateToMainActivity() else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -127,7 +138,6 @@ class LoginActivity : ComponentActivity() {
                             }
                         }
                     } else {
-                        // Connexion
                         signIn(email, password) { success, message ->
                             if (success) navigateToMainActivity() else {
                                 Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -137,17 +147,23 @@ class LoginActivity : ComponentActivity() {
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
                     )
                 } else {
                     Text(text = if (isSignUpMode) "S'inscrire" else "Se connecter")
                 }
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -156,6 +172,7 @@ class LoginActivity : ComponentActivity() {
             }
         }
     }
+
 
     private fun signUp(email: String, password: String, username: String, callback: (Boolean, String) -> Unit) {
         auth.createUserWithEmailAndPassword(email, password)

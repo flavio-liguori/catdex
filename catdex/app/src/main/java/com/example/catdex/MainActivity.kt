@@ -1,3 +1,5 @@
+package com.example.catdex
+
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
