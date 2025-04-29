@@ -168,8 +168,10 @@ class LoginActivity : ComponentActivity() {
             Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(onClick = { isSignUpMode = !isSignUpMode }) {
-                Text(text = if (isSignUpMode) "Déjà un compte? Se connecter" else "Pas de compte? S'inscrire")
-            }
+                Text(
+                    text = if (isSignUpMode) "Déjà un compte? Se connecter" else "Pas de compte? S'inscrire",
+                    color = Color.Black
+                )            }
         }
     }
 
