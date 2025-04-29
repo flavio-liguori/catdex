@@ -1,71 +1,116 @@
 package com.example.catdex
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.example.catdex.LoginActivity
 import com.example.catdex.ui.theme.CatdexTheme
-import com.google.firebase.auth.FirebaseAuth
 
-// Classe MainActivity simple pour les tests
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             CatdexTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Bienvenue dans Catdex!",
-                            style = MaterialTheme.typography.headlineMedium
-                        )
+                HomePage()
+            }
+        }
+    }
+}
 
-                        Spacer(modifier = Modifier.height(16.dp))
+@Composable
+fun HomePage() {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(modifier = Modifier.height(24.dp))
 
-                        Text(
-                            text = "Vous êtes connecté avec succès.",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
+                // Avatar rond du haut
+                Image(
+                    painter = painterResource(id = R.drawable.ic_cat_avatar),
+                    contentDescription = "Avatar chat",
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .padding(8.dp)
+                )
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                        Button(
+                // Image du chat
+                Image(
+                    painter = painterResource(id = R.drawable.cat_pixel_art),
+                    contentDescription = "Chat pixel",
+                    modifier = Modifier
+                        .height(200.dp)
+                        .fillMaxWidth()
+                        .clip(MaterialTheme.shapes.medium)
+                        .padding(8.dp)
+                )
 
-                            onClick = {
-                                FirebaseAuth.getInstance().signOut()
-                                val intent = Intent(this@MainActivity, LoginActivity::class.java)
-                                startActivity(intent)
-                                finish()
-                            }
-                        ) {
-                            Text("Déconnexion")
-                        }
-                    }
+                Text(
+                    text = "Profil chat",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Black
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Bouton encadré style "carrousel"
+                OutlinedButton(onClick = { /* action carrousel */ }) {
+                    Text("Carrousel chat possédé", color = Color.Black)
                 }
             }
+// Barre de navigation en bas (corrigée)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { /* appareil photo */ }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_camera),
+                        contentDescription = "Appareil photo"
+                    )
+                }
+                IconButton(onClick = { /* accueil - patte remplacée par cat avatar */ }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_cat_avatar),
+                        contentDescription = "Accueil"
+                    )
+                }
+                IconButton(onClick = { /* profil */ }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_user),
+                        contentDescription = "Profil"
+                    )
+                }
+            }
+
         }
     }
 }
