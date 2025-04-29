@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
                         Spacer(modifier = Modifier.height(32.dp))
 
                         Button(
+
                             onClick = {
                                 FirebaseAuth.getInstance().signOut()
                                 val intent = Intent(this@MainActivity, LoginActivity::class.java)
