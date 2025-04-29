@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 
 // Ta palette Light
 private val LightColorScheme = lightColorScheme(
-    primary = White,
+    primary = Black,
     background = White,
     surface = White
 )
