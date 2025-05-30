@@ -56,8 +56,21 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.appcompat)
-    implementation ("com.google.accompanist:accompanist-pager:0.34.0")
 
+    // Coil pour Jetpack Compose
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
+    // Navigation Compose
+    implementation("androidx.navigation:navigation-compose:2.5.3")
+
+    // Accompanist Pager (pour HomeWithSwipePages)
+    implementation("com.google.accompanist:accompanist-pager:0.34.0")
+
+    // CameraX
+    implementation("androidx.camera:camera-core:1.2.3")
+    implementation("androidx.camera:camera-camera2:1.2.3")
+    implementation("androidx.camera:camera-lifecycle:1.2.3")
+    implementation("androidx.camera:camera-view:1.2.3")
 
     // Tests
     testImplementation(libs.junit)
@@ -67,5 +80,4 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
 }
