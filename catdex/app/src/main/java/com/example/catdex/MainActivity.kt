@@ -54,10 +54,12 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -66,6 +68,7 @@ import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
 import com.google.firebase.auth.FirebaseAuth
+import hexagonShape
 import kotlinx.coroutines.launch
 
 // --- modèle et données
@@ -114,7 +117,7 @@ fun HomeWithSwipePages() {
         // 1) Contenu défilable
         Box(modifier = Modifier.weight(1f)) {
             HorizontalPager(
-                count = 4,  // 0=Camera,1=Home,2=User,3=CatDex
+                count = 6,  // 0=Camera,1=Home,2=User,3=CatDex
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
@@ -122,8 +125,8 @@ fun HomeWithSwipePages() {
                     0 -> CameraPage()
                     1 -> HomePage(
                         onCameraClick = { scope.launch { pagerState.animateScrollToPage(0) } },
-                        onUserClick   = { scope.launch { pagerState.animateScrollToPage(2) } },
-                        onBreedsClick = { scope.launch { pagerState.animateScrollToPage(3) } }
+                        onBreedsClick = { scope.launch { pagerState.animateScrollToPage(3) } },
+                        onProfileClick = { scope.launch { pagerState.animateScrollToPage(5) } }  // ← ici
                     )
                     2 -> UserPage()
                     3 -> CatDexScreen(
@@ -135,6 +138,8 @@ fun HomeWithSwipePages() {
                             }
                         }
                     )
+                    5 -> ProfileCatPage()
+
                 }
             }
         }
@@ -206,8 +211,8 @@ fun BottomNavBar(
 @Composable
 fun HomePage(
     onCameraClick: () -> Unit,
-    onUserClick: () -> Unit,
-    onBreedsClick: () -> Unit
+    onBreedsClick: () -> Unit,
+    onProfileClick: () -> Unit      // <- ajout du callback
 ) {
     val backgroundColor = Color(0xFFF8F3E9)
     val accentColor = Color(0xFFFF9D72)
@@ -388,7 +393,10 @@ fun HomePage(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Surface(
-                            modifier = Modifier.padding(vertical = 4.dp),
+                            modifier = Modifier
+                                .padding(vertical = 4.dp)
+                                .clickable { onProfileClick() }       // ← c’est ici qu’on déclenche la nav
+                                .shadow(0.dp, RoundedCornerShape(16.dp)),
                             shape = RoundedCornerShape(16.dp),
                             color = accentColor.copy(alpha = 0.12f)
                         ) {
@@ -668,97 +676,169 @@ fun CameraPage() {
         }
     }
 }
-
 @Composable
 fun UserPage() {
     val context = LocalContext.current
 
+    // Exemple de nom d’utilisateur ; dans une vraie appli, utilisez FirebaseAuth.getInstance().currentUser?.displayName
+    val userName = remember { "NomUtilisateur" }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .background(Color(0xFFF5F5F5))   // fond clair pour tout l’écran
+            .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        // --- Avatar centré en haut (placeholder Material)
-        Box(
+        // --- Section Profil (Avatar + Nom)
+        Column(
             modifier = Modifier
-                .size(100.dp)
-                .clip(CircleShape)
-                .border(4.dp, Color(0xFF2E7D32), CircleShape)
-                .background(Color(0xFFE8F5E9)),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = Icons.Default.AccountCircle,
-                contentDescription = "Avatar chat",
-                modifier = Modifier.size(64.dp),
-                tint = Color(0xFF2E7D32)
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .border(4.dp, Color(0xFF2E7D32), CircleShape)
+                    .background(Color(0xFFE8F5E9)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = "Avatar utilisateur",
+                    modifier = Modifier.size(80.dp),
+                    tint = Color(0xFF2E7D32)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = userName,
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = Color(0xFF2E7D32)
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- Titre
+        // --- Section Médailles (3 médailles avec étiquettes)
         Text(
-            text = "MEDALS",
-            style = MaterialTheme.typography.headlineMedium,
-            color = Color(0xFF2E7D32),
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            text = "MES MÉDAILLES",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = Color(0xFF388E3C),
+            modifier = Modifier.padding(bottom = 12.dp)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // --- Grille de médailles (placeholder EmojiEvents)
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(5),
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(bottom = 24.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // on affiche 20 cases avec la même icône EmojiEvents
-            items(20) {
-                Box(
+            // Médaille Or
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.medal_gold),
+                    contentDescription = "Médaille Or",
                     modifier = Modifier
-                        .size(48.dp)
-                        .border(2.dp, Color(0xFF81C784), CircleShape)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE8F5E9)),
-                    contentAlignment = Alignment.Center
+                        .size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "OR",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFFFC107)
+                )
+            }
+
+            // Médaille Argent
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.medal_silver),
+                    contentDescription = "Médaille Argent",
+                    modifier = Modifier
+                        .size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "ARGENT",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF607D8B)
+                )
+            }
+
+            // Médaille Bronze
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.medal_bronze),
+                    contentDescription = "Médaille Bronze",
+                    modifier = Modifier
+                        .size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "BRONZE",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF8D6E63)
+                )
+            }
+        }
+
+        // --- Section Tâches
+        Text(
+            text = "MES TÂCHES",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = Color(0xFF388E3C),
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        // Exemple de tâches statiques ; en production, remplacez par une liste dynamique
+        val tasks = remember {
+            mutableStateListOf(
+                TaskItem("Read 5 pages"),
+                TaskItem("Walk 1 km"),
+                TaskItem("Clean the kitchen")
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)  // prend tout l’espace disponible pour que le bouton reste en bas
+        ) {
+            tasks.forEach { taskItem ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = Color(0xFF2E7D32)
+                    Checkbox(
+                        checked = taskItem.checked,
+                        onCheckedChange = { checked ->
+                            taskItem.checked = checked
+                        },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = Color(0xFF2E7D32),
+                            uncheckedColor = Color(0xFF81C784)
+                        )
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = taskItem.label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = if (taskItem.checked) Color.Gray else Color.Black
                     )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // --- Liste des tâches
-        val tasks = listOf("Read 5 pages", "Walk 1 km", "Clean the kitchen")
-        tasks.forEach { task ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(vertical = 4.dp)
-            ) {
-                Checkbox(
-                    checked = false,
-                    onCheckedChange = {},
-                    colors = CheckboxDefaults.colors(
-                        uncheckedColor = Color(0xFF81C784),
-                        checkmarkColor = Color.White
-                    )
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = task, style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
 
         // --- Bouton “Se déconnecter”
         Button(
@@ -771,14 +851,138 @@ fun UserPage() {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .height(52.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFD32F2F),
                 contentColor = Color.White
             ),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(28.dp)
         ) {
-            Text("Se déconnecter")
+            Text(
+                text = "Se déconnecter",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+            )
+        }
+    }
+}
+
+
+
+// Classe de support pour modéliser une tâche avec état coché/non-coché
+private data class TaskItem(val label: String, var checked: Boolean = false)
+
+@Composable
+fun ProfileCatPage() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFAF5EF))    // fond crème clair
+            .padding(horizontal = 16.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // ─── 1) Hexagone contenant l’image pixel du chat ──────────────────────────────
+        val hexSize: Dp = 160.dp
+
+        Box(
+            modifier = Modifier
+                .size(hexSize)
+                // Bordure sombre de 4dp autour de l’hexagone
+                .border(
+                    width = 4.dp,
+                    color = Color(0xFF333333),
+                    shape = hexagonShape()
+                )
+                // Fond blanc à l’intérieur de l’hexagone
+                .background(color = Color.White, shape = hexagonShape())
+                // Découpe l’intérieur en hexagone
+                .clip(hexagonShape()),
+            contentAlignment = Alignment.Center
+        ) {
+            // Utilisez votre propre ressource "pixel_cat.png" dans res/drawable/
+            val pixelCat: Painter = painterResource(id = R.drawable.cat)
+            Image(
+                painter = pixelCat,
+                contentDescription = "Chat Pixel",
+                modifier = Modifier
+                    .size(100.dp)   // ajustez si nécessaire selon la résolution de votre image
+                    .padding(8.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // ─── 2) Section “Background” ─────────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .background(
+                    color = Color(0xFF81C784),              // vert pixel-style
+                    shape = RoundedCornerShape(4.dp)
+                )
+                .border(
+                    width = 2.dp,
+                    color = Color(0xFF333333),
+                    shape = RoundedCornerShape(4.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Background",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                color = Color.White
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ─── 3) Section “Bannière” ────────────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .background(
+                    color = Color(0xFFFBC02D),              // doré clair
+                    shape = RoundedCornerShape(4.dp)
+                )
+                .border(
+                    width = 2.dp,
+                    color = Color(0xFF333333),
+                    shape = RoundedCornerShape(4.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Bannière",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                color = Color(0xFF333333)  // texte sombre
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ─── 4) Section “Vitrine” ────────────────────────────────────────────────────────
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .background(
+                    color = Color.White,
+                    shape = RoundedCornerShape(4.dp)
+                )
+                .border(
+                    width = 2.dp,
+                    color = Color(0xFF333333),
+                    shape = RoundedCornerShape(4.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Vitrine",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+                color = Color(0xFFF57C00)  // corail/orangé
+            )
         }
     }
 }
