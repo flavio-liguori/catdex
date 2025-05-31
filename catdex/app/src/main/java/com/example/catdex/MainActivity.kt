@@ -1,32 +1,24 @@
 package com.example.catdex
+
 import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
+import android.provider.OpenableColumns
+import android.text.format.DateFormat
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import android.content.Intent
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -39,12 +31,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,18 +45,31 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import com.example.catdex.api.Breed
+import com.example.catdex.api.TheCatApiService
 import com.example.catdex.ui.theme.CatdexTheme
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.*
 // --- modèle et données
 data class CatBreed(
     val name: String,
@@ -441,56 +443,6 @@ fun HomePage(
         }
     }
 }
-
-@Composable
-fun CatDexScreen(
-    breeds: List<CatBreed>,
-    onBreedClick: (CatBreed) -> Unit
-) {
-    var search by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 32.dp)
-    ) {
-        Text(
-            text = "CatDex",
-            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = search,
-            onValueChange = { search = it },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Rechercher") },
-            placeholder = { Text("Search") },
-            singleLine = true,
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(56.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.padding(horizontal = 8.dp),
-            contentPadding = PaddingValues(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(breeds.filter { it.name.contains(search, ignoreCase = true) }) { breed ->
-                BreedCard(breed = breed, onClick = { onBreedClick(breed) })
-            }
-        }
-    }
-}
-
 @Composable
 fun BreedCard(
     breed: CatBreed,
@@ -551,6 +503,55 @@ fun BreedCard(
     }
 }
 @Composable
+fun CatDexScreen(
+    breeds: List<CatBreed>,
+    onBreedClick: (CatBreed) -> Unit
+) {
+    var search by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 32.dp)
+    ) {
+        Text(
+            text = "CatDex",
+            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = search,
+            onValueChange = { search = it },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Rechercher") },
+            placeholder = { Text("Search") },
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(56.dp)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.padding(horizontal = 8.dp),
+            contentPadding = PaddingValues(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(breeds.filter { it.name.contains(search, ignoreCase = true) }) { breed ->
+                BreedCard(breed = breed, onClick = { onBreedClick(breed) })
+            }
+        }
+    }
+}
+
+@Composable
 fun CameraPage(onClose: () -> Unit = {}) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -574,36 +575,75 @@ fun CameraPage(onClose: () -> Unit = {}) {
         }
     }
 
-    // 2) État du sélecteur de caméra (avant ou arrière)
+    // 2) CameraX : Preview + ImageCapture
+    var imageCaptureUseCase by remember { mutableStateOf<ImageCapture?>(null) }
+    var previewView: PreviewView? = null
+
+    // 3) Stockage de l’image capturée pour déclencher l’upload
+    var photoFile by remember { mutableStateOf<File?>(null) }
+
+    // 4) Stockage du résultat (race) et état de chargement
+    var detectedBreed by remember { mutableStateOf<String?>(null) }
+    var isUploading by remember { mutableStateOf(false) }
+
+    // 5) État du switch avant/arrière
     var lensFacing by remember { mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA) }
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    // 6) Trigger d’upload dès que 'photoFile' change
+    LaunchedEffect(photoFile) {
+        val file = photoFile
+        if (file != null) {
+            isUploading = true
+            val result = uploadToTheCatApiSuspend(file)
+            detectedBreed = result
+            // Supprimer le fichier temporaire après upload
+            file.delete()
+            photoFile = null   // reset pour pouvoir capturer une autre photo plus tard
+            isUploading = false
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         if (hasPermission) {
-            // 3) PreviewCamera (CameraX)
+            // 7) Affichage du PreviewView de CameraX
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
-                    val previewView = PreviewView(ctx).apply {
+                    val pv = PreviewView(ctx).apply {
                         scaleType = PreviewView.ScaleType.FILL_CENTER
                     }
+                    previewView = pv
+
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
-                        val preview = Preview.Builder().build().also { p ->
-                            p.setSurfaceProvider(previewView.surfaceProvider)
+
+                        // a) Use-case Preview
+                        val preview = Preview.Builder().build().also { pre ->
+                            pre.setSurfaceProvider(pv.surfaceProvider)
                         }
+
+                        // b) Use-case ImageCapture
+                        val ic = ImageCapture.Builder()
+                            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                            .build()
+                        imageCaptureUseCase = ic
+
+                        // c) Bind use-cases au cycle de vie
                         cameraProvider.unbindAll()
                         cameraProvider.bindToLifecycle(
                             lifecycleOwner,
                             lensFacing,
-                            preview
+                            preview,
+                            ic
                         )
                     }, ContextCompat.getMainExecutor(ctx))
-                    previewView
+
+                    pv
                 }
             )
         } else {
-            // Message si pas de permission
+            // Si on n'a pas la permission caméra, on affiche un message
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -616,7 +656,7 @@ fun CameraPage(onClose: () -> Unit = {}) {
             }
         }
 
-        // 4) Barre supérieure avec un bouton “Retour”
+        // 8) Barre supérieure : bouton "Retour"
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -640,15 +680,34 @@ fun CameraPage(onClose: () -> Unit = {}) {
             }
         }
 
-        // 5) Viewfinder circulaire au centre
+        // 9) Viewfinder circulaire au centre
         Box(
             modifier = Modifier
                 .size(260.dp)
+                .align(Alignment.Center)
                 .border(4.dp, Color(0xFF4CAF50), CircleShape)
                 .clip(CircleShape)
         )
 
-        // 6) Barre inférieure : capture + switch cam
+        // 10) Afficher la race détectée si elle existe
+        detectedBreed?.let { breedName ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(top = 80.dp)
+                    .background(Color(0xAA000000), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "Race détectée : $breedName",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+
+        // 11) Barre inférieure : capture + switch caméra
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -657,13 +716,32 @@ fun CameraPage(onClose: () -> Unit = {}) {
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Bouton pour basculer caméra
+            // 11.a) Bouton pour changer de caméra (avant/arrière)
             IconButton(
                 onClick = {
                     lensFacing = if (lensFacing == CameraSelector.DEFAULT_BACK_CAMERA) {
                         CameraSelector.DEFAULT_FRONT_CAMERA
                     } else {
                         CameraSelector.DEFAULT_BACK_CAMERA
+                    }
+                    // Re-bind avec le nouveau lensFacing
+                    previewView?.let { pv ->
+                        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+                        cameraProviderFuture.addListener({
+                            val cameraProvider = cameraProviderFuture.get()
+                            val preview = Preview.Builder().build().also { pre ->
+                                pre.setSurfaceProvider(pv.surfaceProvider)
+                            }
+                            imageCaptureUseCase?.let { ic ->
+                                cameraProvider.unbindAll()
+                                cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    lensFacing,
+                                    preview,
+                                    ic
+                                )
+                            }
+                        }, ContextCompat.getMainExecutor(context))
                     }
                 },
                 modifier = Modifier
@@ -674,35 +752,157 @@ fun CameraPage(onClose: () -> Unit = {}) {
                     )
             ) {
                 Icon(
-                    imageVector = Icons.Default.Info, // Remplace par un icon “switch camera” si tu as
+                    imageVector = Icons.Default.FlipCameraAndroid,
                     contentDescription = "Changer caméra",
                     tint = Color.White
                 )
             }
 
-            // Bouton capture
+            // 11.b) Bouton capture
             Box(
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
                     .background(Color.White)
                     .border(4.dp, Color(0xFF4CAF50), CircleShape)
-                    .clickable {
-                        // TODO : remplacer par ta logique de capture / analyse d’image
+                    .clickable(enabled = !isUploading) {
+                        val ic = imageCaptureUseCase
+                        if (ic != null) {
+                            // Création d’un fichier temporaire dans le cache
+                            val filename = SimpleDateFormat(
+                                "yyyyMMdd_HHmmss",
+                                Locale.US
+                            ).format(System.currentTimeMillis()) + ".jpg"
+                            val file = File(context.cacheDir, filename)
+
+                            val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
+                            isUploading = true
+                            ic.takePicture(
+                                outputOptions,
+                                ContextCompat.getMainExecutor(context),
+                                object : ImageCapture.OnImageSavedCallback {
+                                    override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                                        // 12) Affecter le fichier pour déclencher le LaunchedEffect
+                                        photoFile = file
+                                    }
+                                    override fun onError(exc: ImageCaptureException) {
+                                        isUploading = false
+                                        detectedBreed = "Erreur capture : ${exc.message}"
+                                        file.delete()
+                                    }
+                                }
+                            )
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
-                // Petit cercle intérieur
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4CAF50))
-                )
+                if (isUploading) {
+                    CircularProgressIndicator(
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.size(40.dp),
+                        strokeWidth = 4.dp
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF4CAF50))
+                    )
+                }
             }
 
-            // Espace vide pour équilibrer la rangée
+            // 11.c) Spacer pour équilibrer la rangée
             Spacer(modifier = Modifier.width(56.dp))
+        }
+    }
+}
+
+
+// 13) Fonction suspendue qui fait l’upload à TheCatAPI et renvoie le nom de la race
+private suspend fun uploadToTheCatApiSuspend(file: File): String {
+    return withContext(Dispatchers.IO) {
+        val mediaType = "image/jpeg".toMediaTypeOrNull()
+        val requestBody = file.asRequestBody(mediaType)
+        val part = MultipartBody.Part.createFormData("file", file.name, requestBody)
+
+        return@withContext try {
+            val service = TheCatApiService.create()
+            val response = service.uploadCatImage(part)
+            if (response.isSuccessful) {
+                val body = response.body()
+                val breeds = body?.breeds
+                if (!breeds.isNullOrEmpty()) {
+                    breeds[0].name ?: "Race inconnue"
+                } else {
+                    "Aucune race détectée"
+                }
+            } else {
+                "Erreur API : ${response.code()}"
+            }
+        } catch (e: Exception) {
+            "Exception : ${e.localizedMessage}"
+        }
+    }
+}
+
+// 11) Fonction utilitaire suspendue pour uploader l’image à TheCatAPI
+//     et extraire la race détectée. Appelle un callback avec le nom de la race ou un message d’erreur.
+private suspend fun uploadToTheCatApi(
+    file: File,
+    onResult: (String?) -> Unit
+) {
+    // On crée un MultipartBody.Part à partir du fichier
+    val mediaType = "image/jpeg".toMediaTypeOrNull()
+    val requestBody = file.asRequestBody(mediaType)
+    val part = MultipartBody.Part.createFormData("file", file.name, requestBody)
+
+    try {
+        val service = TheCatApiService.create()
+        val response = service.uploadCatImage(part)
+        if (response.isSuccessful) {
+            val body = response.body()
+            // TheCatAPI renvoie une liste "breeds". On prend le premier élément si présent.
+            val breeds = body?.breeds
+            if (breeds != null && breeds.isNotEmpty()) {
+                onResult(breeds[0].name ?: "Race inconnue")
+            } else {
+                onResult("Aucune race détectée")
+            }
+        } else {
+            onResult("Erreur API : ${response.code()}")
+        }
+    } catch (e: Exception) {
+        onResult("Exception : ${e.localizedMessage}")
+    }
+}
+@Composable
+fun CatBreedResultScreen(viewModel: CatBreedViewModel) {
+    val breedState by viewModel.breedResult.collectAsState()
+
+    when (val result = breedState) {
+        null -> {
+            // Pas encore de requête lancée : soit on affiche un bouton "Take Photo" ou rien
+            Text("Aucune image analysée pour l’instant")
+        }
+        is Result.Success -> {
+            val breeds = result.getOrNull() ?: emptyList()
+            if (breeds.isEmpty()) {
+                Text("Aucune race détectée")
+            } else {
+                // Affiche la liste des races retournées (ou la première)
+                Column {
+                    breeds.forEach { breed ->
+                        Text("Race détectée : ${breed.name}")
+                        Text("Origine : ${breed.origin}")
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                }
+            }
+        }
+        is Result.Failure -> {
+            val exception = result.exceptionOrNull()
+            Text("Erreur : ${exception?.message ?: "inconnue"}")
         }
     }
 }

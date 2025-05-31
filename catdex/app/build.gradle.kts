@@ -56,6 +56,9 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.appcompat)
+    // Pour pouvoir utiliser Icons.Default.FlipCameraAndroid
+    implementation ("androidx.compose.material:material-icons-extended:1.5.0")
+
 
     // Coil pour Jetpack Compose
     implementation("io.coil-kt:coil-compose:2.4.0")
@@ -71,7 +74,14 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.2.3")
     implementation("androidx.camera:camera-lifecycle:1.2.3")
     implementation("androidx.camera:camera-view:1.2.3")
-
+    implementation("androidx.camera:camera-extensions:1.2.3")
+    implementation("androidx.camera:camera-video:1.2.3")
+    // Retrofit + OkHttp pour appeler TheCatAPI
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.3")
+    // Gson (pour parser la réponse JSON)
+    implementation("com.google.code.gson:gson:2.10")
     // Tests
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
