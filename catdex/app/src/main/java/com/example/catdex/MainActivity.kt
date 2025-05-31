@@ -550,30 +550,36 @@ fun BreedCard(
         }
     }
 }
-
 @Composable
-fun CameraPage() {
+fun CameraPage(onClose: () -> Unit = {}) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // 1) Gestion de la permission caméra
+    // 1) Permission caméra
     var hasPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         )
     }
-    val launcher = rememberLauncherForActivityResult(
+    val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { granted -> hasPermission = granted }
     )
     LaunchedEffect(Unit) {
-        if (!hasPermission) launcher.launch(Manifest.permission.CAMERA)
+        if (!hasPermission) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // 2) Si ok, affiche le flux CameraX
+    // 2) État du sélecteur de caméra (avant ou arrière)
+    var lensFacing by remember { mutableStateOf(CameraSelector.DEFAULT_BACK_CAMERA) }
+
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         if (hasPermission) {
+            // 3) PreviewCamera (CameraX)
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
@@ -583,88 +589,120 @@ fun CameraPage() {
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
-                        val preview = Preview.Builder().build().also {
-                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        val preview = Preview.Builder().build().also { p ->
+                            p.setSurfaceProvider(previewView.surfaceProvider)
                         }
-                        val selector = CameraSelector.DEFAULT_BACK_CAMERA
                         cameraProvider.unbindAll()
-                        cameraProvider.bindToLifecycle(lifecycleOwner, selector, preview)
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            lensFacing,
+                            preview
+                        )
                     }, ContextCompat.getMainExecutor(ctx))
                     previewView
                 }
             )
         } else {
-            // si on n'a pas la permission
+            // Message si pas de permission
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Autorisation caméra requise", color = Color.White)
-            }
-        }
-
-        // 3) Cadre vert + overlay chat
-        Box(
-            modifier = Modifier
-                .size(300.dp)
-                .align(Alignment.Center)
-                .border(4.dp, Color(0xFF4CAF50), RoundedCornerShape(16.dp))
-                .clip(RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            // ici tu peux mettre un Icon ou painterResource d’un chat stylisé
-            Icon(
-                imageVector = Icons.Default.Info, // remplace par ton overlay chat
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(128.dp)
-            )
-        }
-
-        // 4) Conseil et bouton prise de vue
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 120.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Click on ○ to learn what the result means.",
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            IconButton(
-                onClick = { /* TODO: lancer l’analyse du frame */ },
-                modifier = Modifier
-                    .size(72.dp)
-                    .background(Color.White, CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Done,
-                    contentDescription = "Prendre photo",
-                    tint = Color.DarkGray,
-                    modifier = Modifier.size(40.dp)
+                Text(
+                    text = "Permission caméra requise",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
         }
 
-        // 5) Footer : logo + bouton info
+        // 4) Barre supérieure avec un bouton “Retour”
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.Start
+        ) {
+            IconButton(
+                onClick = { onClose() },
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        color = Color.Black.copy(alpha = 0.3f),
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = "Retour",
+                    tint = Color.White
+                )
+            }
+        }
+
+        // 5) Viewfinder circulaire au centre
+        Box(
+            modifier = Modifier
+                .size(260.dp)
+                .border(4.dp, Color(0xFF4CAF50), CircleShape)
+                .clip(CircleShape)
+        )
+
+        // 6) Barre inférieure : capture + switch cam
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(bottom = 32.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // logo sylvester.ai (ajoute un painterResource si tu as le drawable)
-            Text("sylvester.ai", color = Color.White)
-            IconButton(onClick = { /* TODO: afficher aide */ }) {
+            // Bouton pour basculer caméra
+            IconButton(
+                onClick = {
+                    lensFacing = if (lensFacing == CameraSelector.DEFAULT_BACK_CAMERA) {
+                        CameraSelector.DEFAULT_FRONT_CAMERA
+                    } else {
+                        CameraSelector.DEFAULT_BACK_CAMERA
+                    }
+                },
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(
+                        color = Color.Black.copy(alpha = 0.3f),
+                        shape = CircleShape
+                    )
+            ) {
                 Icon(
-                    imageVector = Icons.Default.Info,
-                    contentDescription = "Aide",
+                    imageVector = Icons.Default.Info, // Remplace par un icon “switch camera” si tu as
+                    contentDescription = "Changer caméra",
                     tint = Color.White
                 )
             }
+
+            // Bouton capture
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .border(4.dp, Color(0xFF4CAF50), CircleShape)
+                    .clickable {
+                        // TODO : remplacer par ta logique de capture / analyse d’image
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                // Petit cercle intérieur
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF4CAF50))
+                )
+            }
+
+            // Espace vide pour équilibrer la rangée
+            Spacer(modifier = Modifier.width(56.dp))
         }
     }
 }
